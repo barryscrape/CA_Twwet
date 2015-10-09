@@ -1,36 +1,34 @@
-# This is a template for a Perl scraper on morph.io (https://morph.io)
-# including some code snippets below that you should find helpful
+###################################################################################
+# Twitter scraper - designed to be forked and used for more interesting things
+###################################################################################
 
-# use LWP::Simple;
-# use HTML::TreeBuilder;
-# use Database::DumpTruck;
+import scraperwiki
+import simplejson
+import urllib2
 
-# use strict;
-# use warnings;
+# Change QUERY to your search term of choice. 
+# Examples: 'newsnight', 'from:bbcnewsnight', 'to:bbcnewsnight'
+QUERY = '#mainframe'
+RESULTS_PER_PAGE = '1000'
+LANGUAGE = 'en'
+NUM_PAGES = 9000 
 
-# # Turn off output buffering
-# $| = 1;
-
-# # Read out and parse a web page
-# my $tb = HTML::TreeBuilder->new_from_content(get('http://example.com/'));
-
-# # Look for <tr>s of <table id="hello">
-# my @rows = $tb->look_down(
-#     _tag => 'tr',
-#     sub { shift->parent->attr('id') eq 'hello' }
-# );
-
-# # Open a database handle
-# my $dt = Database::DumpTruck->new({dbname => 'data.sqlite', table => 'data'});
-#
-# # Insert some records into the database
-# $dt->insert([{
-#     Name => 'Susan',
-#     Occupation => 'Software Developer'
-# }]);
-
-# You don't have to do things with the HTML::TreeBuilder and Database::DumpTruck libraries.
-# You can use whatever libraries you want: https://morph.io/documentation/perl
-# All that matters is that your final data is written to an SQLite database
-# called "data.sqlite" in the current working directory which has at least a table
-# called "data".
+for page in range(1, NUM_PAGES+1):
+    base_url = 'http://search.twitter.com/search.json?q=%s&rpp=%s&lang=%s&page=%s' \
+         % (urllib2.quote(QUERY), RESULTS_PER_PAGE, LANGUAGE, page)
+    try:
+        results_json = simplejson.loads(scraperwiki.scrape(base_url))
+        for result in results_json['results']:
+            #print result
+            data = {}
+            data['id'] = result['id']
+            data['text'] = result['text']
+            data['from_user'] = result['from_user']
+            data['created_at'] = result['created_at']
+            print data['from_user'], data['text']
+            scraperwiki.sqlite.save(["id"], data) 
+    except:
+        print 'Oh dear, failed to scrape %s' % base_url
+        break
+        
+    
